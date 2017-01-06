@@ -17,8 +17,9 @@ set autoindent
 
 set showmatch
 
-set hlsearch
+set mouse=a
 
+set hlsearch
 
 
 
