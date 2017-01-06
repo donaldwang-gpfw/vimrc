@@ -1,0 +1,106 @@
+" cstagdir {
+    let curdir = getcwd()
+    let topdir = curdir
+    let cstagdir = topdir . '/.cstag'
+    let gitroot = substitute(system('git rev-parse --show-toplevel'), '[\n\r]', '', 'g')
+    if gitroot != ''
+        let topdir = gitroot
+        let dotgitdir = gitroot . '/.git'
+        if isdirectory(dotgitdir)
+            let cstagdir = topdir . '/.git/.cstag'
+        else
+            let cstagdir = topdir . '/.cstag'
+        endif
+    endif
+" }
+
+" ctags {
+    let tagfile = cstagdir . '/tags'
+    " add any database in current directory
+    if filereadable("tags")
+        let &tags = &tags . ',' . curdir . '/tags'
+    endif
+    if filereadable(tagfile)
+        let &tags = &tags . ',' . tagfile
+    endif
+" }
+
+if has("cscope")
+    let csfile = cstagdir . '/cscope.out'
+    set csprg=/usr/bin/cscope
+    set csto=0
+    set cst
+    set cscopequickfix=s-,c-,d-,i-,t-,e-
+    set nocsverb
+
+    " add any database in current directory
+    if filereadable("cscope.out")
+        cs add cscope.out
+    " else add database pointed to by environment
+    elseif $CSCOPE_DB != ""
+        cs add $CSCOPE_DB
+    endif
+
+    if filereadable(csfile)
+        execute ":cs add " . csfile
+    endif
+
+    set csverb
+    nmap <C-\>s :cs find s <C-R>=expand("<cword>")<CR><CR>
+    nmap <C-\>g :cs find g <C-R>=expand("<cword>")<CR><CR>
+    nmap <C-\>c :cs find c <C-R>=expand("<cword>")<CR><CR>
+    nmap <C-\>t :cs find t <C-R>=expand("<cword>")<CR><CR>
+    nmap <C-\>e :cs find e <C-R>=expand("<cword>")<CR><CR>
+    nmap <C-\>f :cs find f <C-R>=expand("<cfile>")<CR><CR>
+    nmap <C-\>i :cs find i ^<C-R>=expand("<cfile>")<CR>$<CR>
+    nmap <C-\>d :cs find d <C-R>=expand("<cword>")<CR><CR>
+endif
+
+
+"    cd topdir
+"
+"    ctags -R topdir
+"    mv tags cstagdir
+"
+"    rm -f  cstagdir/cscope*.out
+"    cd
+"    rm -fr .cscope_tmp
+"    mkdir -p .cscope_tmp
+"    cd .cscope_tmp
+"    find topdir -type f -name '*.[chS] ' -print > cscope.files
+"    cscope -bq
+"    cp cscope*.out cstagdir
+"    cd
+"    rm -fr .cscope_tmp
+"
+"    cd curdir
+function! UpdateCstags()
+    let curdir = getcwd()
+    let topdir = curdir
+    let cstagdir = topdir . '/.cstag'
+    let gitroot = substitute(system('git rev-parse --show-toplevel'), '[\n\r]', '', 'g')
+    echo printf("gitroot=%s", gitroot)
+    if gitroot != ''
+        let topdir = gitroot
+        let dotgitdir = gitroot . '/.git'
+        if isdirectory(dotgitdir)
+            let cstagdir = topdir . '/.git/.cstag'
+        else
+            let cstagdir = topdir . '/.cstag'
+        endif
+        if !isdirectory(cstagdir)
+            call mkdir(cstagdir, "p")
+        endif
+    endif
+    let csfile = cstagdir . '/cscope.out'
+    let tagfile = cstagdir . '/tags'
+
+    if filereadable(tagfile)
+        let &tags = &tags . ',' . tagfile
+    endif
+
+    execute ":cs kill -1"
+    execute ":!cd " . topdir . ";" . "ctags -R " . topdir . ";" . "mv tags ". cstagdir  . ";" . "rm -f " . cstagdir . '/cscope' . '*.out' . ";" . "cd" . ";" . "rm -fr .cscope_tmp" . ";" . "mkdir -p .cscope_tmp" . ";" . "cd .cscope_tmp" . ";" . "find " . topdir " -type f -name " . '*.[chS] ' "-print > cscope.files" . ";" . "cscope -bq 2>>/dev/null" . ";" . "cp " . 'cscope*.out ' . cstagdir . ";" . "cd" . ";" . "rm -fr .cscope_tmp" . ";" . "cd " . curdir
+    execute ":cs add " . csfile
+endfunction
+nmap <C-\>u :call UpdateCstags()<CR><CR><CR><CR>
